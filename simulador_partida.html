@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Partida de 3 motores: simultânea x sequencial</title>
+<style>
+:root{--bg:#eef2f5;--panel:#fff;--ink:#14263b;--mut:#5a6d80;--line:#3a5068;--zone:#e8741e;--ok:#1f8a5b;--bad:#c8302b;--grid:#d3dce4;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a26;--panel:#172536;--ink:#e3ecf4;--mut:#93a6b8;--line:#8aa3bb;--zone:#f08a3c;--ok:#3fc08a;--bad:#ff6b63;--grid:#2a3d52}}
+:root[data-theme="dark"]{--bg:#0f1a26;--panel:#172536;--ink:#e3ecf4;--mut:#93a6b8;--line:#8aa3bb;--zone:#f08a3c;--ok:#3fc08a;--bad:#ff6b63;--grid:#2a3d52}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Avenir Next","Segoe UI",system-ui,sans-serif}
+main{max-width:640px;margin:0 auto;padding:18px 16px 28px}
+h1{font-size:1.35rem;line-height:1.25;margin:0 0 4px}
+p.sub{margin:0 0 14px;color:var(--mut);font-size:.92rem}
+.card{background:var(--panel);border:1px solid var(--grid);border-radius:10px;padding:12px;margin-bottom:12px}
+svg{width:100%;height:auto;display:block}
+svg text{fill:var(--ink);font-family:inherit}
+.w{stroke:var(--line);stroke-width:2;fill:none}
+.on{stroke:var(--ok)}
+.seg{display:flex;gap:8px;margin-bottom:10px}
+button{font:inherit;border:1.5px solid var(--line);background:transparent;color:var(--ink);border-radius:8px;padding:9px 12px;cursor:pointer;flex:1}
+button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+button.go{background:var(--zone);border-color:var(--zone);color:#111;font-weight:700}
+button:focus-visible,input:focus-visible{outline:3px solid var(--zone);outline-offset:2px}
+label{display:flex;justify-content:space-between;font-size:.92rem;color:var(--mut)}
+input[type=range]{width:100%;accent-color:var(--zone)}
+.read{display:flex;gap:10px;margin-bottom:8px}
+.read div{flex:1}
+.read b{display:block;font-size:1.5rem;line-height:1.1}
+.read span{font-size:.8rem;color:var(--mut)}
+canvas{width:100%;height:210px;display:block}
+#msg{font-size:.95rem;margin:10px 0 0;min-height:3.2em}
+.bad{color:var(--bad)}.good{color:var(--ok)}
+</style>
+</head>
+<body>
+<main>
+<h1>Três motores, um disjuntor</h1>
+<p class="sub">Cada motor de 15 A pede cerca de 105 A só na partida. Veja o que acontece quando eles ligam juntos ou um de cada vez.</p>
+
+<div class="card">
+<svg id="sch" viewBox="0 0 360 225" role="img" aria-label="Diagrama: fonte, disjuntor de 50 A e três motores">
+ <circle cx="22" cy="30" r="13" class="w"/><text x="22" y="35" text-anchor="middle" font-size="15">~</text>
+ <path class="w" d="M35 30H52"/>
+ <rect id="brk" x="52" y="14" width="52" height="32" rx="4" class="w" style="fill:var(--panel)"/>
+ <text x="78" y="34" text-anchor="middle" font-size="13" font-weight="700">50 A</text>
+ <text id="brkst" x="78" y="9" text-anchor="middle" font-size="9.5" fill="currentColor">fechado</text>
+ <path class="w" d="M104 30H300"/>
+ <g id="ms"></g>
+</svg>
+</div>
+
+<div class="card">
+ <div class="seg">
+  <button id="bS" aria-pressed="true">Simultânea</button>
+  <button id="bQ" aria-pressed="false">Sequencial</button>
+ </div>
+ <div id="intv" hidden>
+  <label for="gap"><span>Intervalo entre partidas</span><span id="gapv">3 s</span></label>
+  <input id="gap" type="range" min="1" max="5" step="0.5" value="3">
+ </div>
+ <button class="go" id="go" style="width:100%;margin-top:8px">Iniciar partida</button>
+</div>
+
+<div class="card">
+ <div class="read">
+  <div><b id="cur">0 A</b><span>corrente agora</span></div>
+  <div><b id="pk">0 A</b><span>pico</span></div>
+  <div><b id="st" class="good">Ligado</b><span>disjuntor</span></div>
+ </div>
+ <canvas id="cv" role="img" aria-label="Gráfico da corrente total no tempo"></canvas>
+ <p id="msg">Escolha um modo e toque em “Iniciar partida”.</p>
+</div>
+</main>
+<script>
+const IN=15,IP=105,TAU=.8,TRIP=250,TMAX=12,SPD=2,DJ=50;
+const $=id=>document.getElementById(id);
+const NS="http://www.w3.org/2000/svg";
+let mode="S",gap=3,t=0,run=false,tripped=false,hist=[],peak=0,last=0,ang=[0,0,0];
+const cx=[130,215,300];
+const ms=$("ms");
+cx.forEach((x,i)=>{
+ ms.insertAdjacentHTML("beforeend",
+ `<path class="w" id="d${i}" d="M${x} 30V68"/>
+  <circle cx="${x}" cy="68" r="2.5" fill="currentColor"/>
+  <path class="w" id="bl${i}" d="M${x} 92L${x+12} 72"/>
+  <circle cx="${x}" cy="92" r="2.5" fill="currentColor"/>
+  <path class="w" id="e${i}" d="M${x} 92V126"/>
+  <circle cx="${x}" cy="150" r="24" class="w" style="fill:var(--panel)" id="mc${i}"/>
+  <path id="ro${i}" d="M${x} 150V136" class="w" style="stroke-width:3"/>
+  <text x="${x}" y="195" text-anchor="middle" font-size="13" font-weight="700">M${i+1}</text>
+  <text id="tl${i}" x="${x}" y="211" text-anchor="middle" font-size="10.5" style="fill:var(--mut)"></text>`);
+});
+const starts=()=>mode==="S"?[1,1,1]:[1,1+gap,1+2*gap];
+function cur(tt){let s=0;starts().forEach(a=>{if(tt>=a)s+=IN+(IP-IN)*Math.exp(-(tt-a)/TAU)});return s}
+function labels(){starts().forEach((a,i)=>$("tl"+i).textContent="liga em "+a+" s")}
+function reset(){t=0;run=false;tripped=false;hist=[];peak=0;ang=[0,0,0];$("go").textContent="Iniciar partida";
+ $("msg").textContent="Escolha um modo e toque em “Iniciar partida”.";$("msg").className="";labels();paint()}
+function paint(I=0){
+ const s=starts();
+ $("cur").textContent=Math.round(I)+" A";$("pk").textContent=Math.round(peak)+" A";
+ const st=$("st");st.textContent=tripped?"Desarmou":"Ligado";st.className=tripped?"bad":"good";
+ $("brkst").textContent=tripped?"DESARMADO":"fechado";
+ $("brk").style.stroke=tripped?"var(--bad)":"var(--line)";
+ cx.forEach((x,i)=>{
+  const on=t>=s[i]&&!tripped;
+  $("bl"+i).setAttribute("d",t>=s[i]?`M${x} 92V68`:`M${x} 92L${x+12} 72`);
+  ["d","e"].forEach(p=>$(p+i).classList.toggle("on",on));
+  $("mc"+i).style.stroke=on?"var(--ok)":"var(--line)";
+  $("ro"+i).setAttribute("transform",`rotate(${ang[i]} ${x} 150)`);
+ });
+ draw();
+}
+function draw(){
+ const c=$("cv"),r=devicePixelRatio||1,W=c.clientWidth,H=c.clientHeight;
+ c.width=W*r;c.height=H*r;const g=c.getContext("2d");g.scale(r,r);
+ const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+ const L=40,R=8,T=8,B=24,pw=W-L-R,ph=H-T-B,YM=400;
+ const X=v=>L+v/TMAX*pw,Y=v=>T+ph-v/YM*ph;
+ g.fillStyle=css("--zone");g.globalAlpha=.25;g.fillRect(L,Y(YM),pw,Y(TRIP)-Y(YM));g.globalAlpha=1;
+ g.strokeStyle=css("--grid");g.fillStyle=css("--mut");g.font="11px system-ui";g.lineWidth=1;
+ for(let v=0;v<=400;v+=100){g.beginPath();g.moveTo(L,Y(v));g.lineTo(L+pw,Y(v));g.stroke();g.fillText(v,6,Y(v)+4)}
+ for(let v=0;v<=TMAX;v+=2)g.fillText(v+" s",X(v)-8,H-6);
+ g.setLineDash([5,4]);g.strokeStyle=css("--ink");g.beginPath();g.moveTo(L,Y(DJ));g.lineTo(L+pw,Y(DJ));g.stroke();g.setLineDash([]);
+ g.fillStyle=css("--ink");g.fillText("50 A",L+4,Y(DJ)-4);
+ g.fillStyle=css("--zone");g.fillText("zona de disparo (250 A ou mais)",L+4,Y(TRIP)-6);
+ if(hist.length){g.beginPath();g.lineWidth=2.5;g.strokeStyle=css(tripped?"--bad":"--ok");
+  hist.forEach((p,i)=>{i?g.lineTo(X(p[0]),Y(p[1])):g.moveTo(X(p[0]),Y(p[1]))});g.stroke()}
+}
+function end(){
+ run=false;$("go").textContent="Rodar de novo";const m=$("msg");
+ if(tripped){m.className="bad";m.textContent="O disjuntor desarmou: os picos de partida somados chegaram a "+Math.round(peak)+" A, dentro da faixa de disparo magnético (250 A ou mais), mesmo com a soma das correntes nominais em apenas 45 A."}
+ else{m.className="good";m.textContent="Sem desarme: o maior pico foi "+Math.round(peak)+" A, abaixo da faixa de disparo. No regime, os três motores somam 45 A, menos que os 50 A do disjuntor."}
+}
+function loop(ts){
+ if(!run)return;
+ const dt=Math.min((ts-last)/1000,.05);last=ts;t+=dt*SPD;
+ let I=0;
+ if(!tripped){I=cur(t);if(I>=TRIP)tripped=true;peak=Math.max(peak,I)}
+ hist.push([t,I]);
+ starts().forEach((a,i)=>{if(t>=a&&!tripped)ang[i]+=dt*SPD*(1+4*(1-Math.exp(-(t-a)/TAU)))*200});
+ paint(I);
+ if(t>=TMAX){end();return}
+ requestAnimationFrame(loop);
+}
+$("go").onclick=()=>{reset();run=true;last=performance.now();requestAnimationFrame(loop)};
+function setMode(m){mode=m;$("bS").setAttribute("aria-pressed",m==="S");$("bQ").setAttribute("aria-pressed",m==="Q");$("intv").hidden=m==="S";reset()}
+$("bS").onclick=()=>setMode("S");$("bQ").onclick=()=>setMode("Q");
+$("gap").oninput=e=>{gap=+e.target.value;$("gapv").textContent=gap+" s";reset()};
+addEventListener("resize",()=>paint());
+reset();
+</script>
+</body>
+</html>

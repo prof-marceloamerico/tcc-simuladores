@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Centralizador PLC: retorno de energia sem desarme</title>
+<style>
+:root{--bg:#eef2f5;--panel:#fff;--ink:#14263b;--mut:#5a6d80;--line:#3a5068;--zone:#e8741e;--ok:#1f8a5b;--bad:#c8302b;--grid:#d3dce4;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a26;--panel:#172536;--ink:#e3ecf4;--mut:#93a6b8;--line:#8aa3bb;--zone:#f08a3c;--ok:#3fc08a;--bad:#ff6b63;--grid:#2a3d52}}
+:root[data-theme="dark"]{--bg:#0f1a26;--panel:#172536;--ink:#e3ecf4;--mut:#93a6b8;--line:#8aa3bb;--zone:#f08a3c;--ok:#3fc08a;--bad:#ff6b63;--grid:#2a3d52}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Avenir Next","Segoe UI",system-ui,sans-serif}
+main{max-width:640px;margin:0 auto;padding:18px 16px 28px}
+h1{font-size:1.35rem;line-height:1.25;margin:0 0 4px}
+p.sub{margin:0 0 14px;color:var(--mut);font-size:.92rem}
+.card{background:var(--panel);border:1px solid var(--grid);border-radius:10px;padding:12px;margin-bottom:12px}
+.sv{overflow-x:auto}.sv svg{min-width:700px}
+svg{width:100%;height:auto;display:block}
+svg text{fill:var(--ink);font-family:inherit}
+.w{stroke:var(--line);stroke-width:2;fill:none}
+.on{stroke:var(--ok)}
+.fl{stroke:var(--zone);stroke-width:3;fill:none;stroke-dasharray:5 7;animation:d .5s linear infinite}
+@keyframes d{to{stroke-dashoffset:-12}}
+.seg{display:flex;gap:8px;margin-bottom:10px}
+button{font:inherit;border:1.5px solid var(--line);background:transparent;color:var(--ink);border-radius:8px;padding:9px 12px;cursor:pointer;flex:1}
+button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+button.go{background:var(--zone);border-color:var(--zone);color:#111;font-weight:700;width:100%;margin-top:8px}
+button:focus-visible,input:focus-visible{outline:3px solid var(--zone);outline-offset:2px}
+.ck{display:flex;gap:8px;align-items:center;font-size:.92rem;color:var(--mut)}
+.ck input{accent-color:var(--zone);width:18px;height:18px}
+.read{display:flex;gap:10px;margin-bottom:8px}
+.read div{flex:1}
+.read b{display:block;font-size:1.5rem;line-height:1.1}
+.read span{font-size:.8rem;color:var(--mut)}
+canvas{width:100%;height:230px;display:block}
+#log{list-style:none;margin:0;padding:0;font:.8rem/1.45 ui-monospace,Menlo,Consolas,monospace;min-height:10.5em;color:var(--mut)}
+#log li:last-child{color:var(--ink)}
+#msg{font-size:.95rem;margin:8px 0 0}
+.bad{color:var(--bad)}.good{color:var(--ok)}
+@media (min-width:900px) and (min-aspect-ratio:4/3){
+ html{font-size:clamp(16px,1.3vw,24px)}
+ main{max-width:1500px;display:grid;grid-template-columns:1fr 1.3fr;column-gap:20px;padding:22px 28px}
+ h1,p.sub,.c1{grid-column:1/-1}
+ h1{font-size:1.9rem}
+ .c2{grid-column:1}
+ .c3{grid-column:1}
+ .c4{grid-column:2;grid-row:4/span 2}
+ .c4 canvas{height:clamp(260px,42vh,480px)}
+ .read b{font-size:2rem}
+}
+</style>
+</head>
+<body>
+<main>
+<h1>Retorno de energia: todos partem juntos ou em fila?</h1>
+<p class="sub">Um centralizador (microcontrolador) fala com cada equipamento pela própria fiação (PLC) e libera as partidas por prioridade, medindo a corrente do quadro.</p>
+
+<div class="card c1 sv">
+<svg id="sch" viewBox="0 0 960 245" role="img" aria-label="Fonte, disjuntor de 40 A, sensor de corrente, centralizador e seis cargas">
+ <circle cx="30" cy="40" r="14" class="w"/><text x="30" y="45" text-anchor="middle" font-size="15">~</text>
+ <text id="pw" x="30" y="76" text-anchor="middle" font-size="11" font-weight="700"></text>
+ <path class="w" d="M44 40H62"/>
+ <rect id="brk" x="62" y="22" width="68" height="36" rx="4" class="w" style="fill:var(--panel)"/>
+ <text x="96" y="45" text-anchor="middle" font-size="13" font-weight="700">40 A · B</text>
+ <text id="brkst" x="96" y="16" text-anchor="middle" font-size="10"></text>
+ <path id="bus" class="w" d="M130 40H935"/>
+ <path id="pl" class="fl" d="M130 40H935" style="opacity:0"/>
+ <circle cx="165" cy="40" r="11" style="fill:none;stroke:var(--zone);stroke-width:3"/>
+ <path d="M165 51V104M230 40V104" style="stroke:var(--zone);stroke-width:1.5;fill:none;stroke-dasharray:3 3"/>
+ <text x="172" y="82" font-size="10">medição</text><text x="237" y="82" font-size="10">sinal PLC</text>
+ <rect x="125" y="104" width="145" height="56" rx="6" class="w" style="fill:var(--panel)"/>
+ <text x="197" y="128" text-anchor="middle" font-size="13" font-weight="700">Centralizador</text>
+ <text x="197" y="146" text-anchor="middle" font-size="10.5">microcontrolador + modem PLC</text>
+ <g id="ld"></g>
+</svg>
+</div>
+
+<div class="card c2">
+ <div class="seg">
+  <button id="bS" aria-pressed="true">Sem centralizador</button>
+  <button id="bC" aria-pressed="false">Com centralizador</button>
+ </div>
+ <label class="ck"><input type="checkbox" id="fr" checked> Incluir carga fora de controle (geladeira, sem nó)</label>
+ <button class="go" id="go">Simular queda e retorno</button>
+</div>
+
+<div class="card c3">
+ <ul id="log"></ul>
+ <p id="msg">Escolha o modo e toque em “Simular queda e retorno”.</p>
+</div>
+
+<div class="card c4">
+ <div class="read">
+  <div><b id="cur">0 A</b><span>corrente do quadro</span></div>
+  <div><b id="pk">0 A</b><span>pico</span></div>
+  <div><b id="st" class="good">Ligado</b><span>disjuntor</span></div>
+ </div>
+ <canvas id="cv" role="img" aria-label="Gráfico da corrente total no tempo"></canvas>
+</div>
+</main>
+<script>
+const TRIP=120,LIM=96,TMAX=9,SPD=1.5,T_ON=1,T_ANN=1.6,CYC=.25,LAT=.2,NOM=39;
+const L=[
+{n:"Elevador",k:"m",In:14,Ip:84,tau:.8,p:1},
+{n:"Alarmes",k:"r",In:2,Ip:2,tau:1,p:2},
+{n:"Bomba d’água",k:"m",In:8,Ip:48,tau:.6,p:3},
+{n:"Cozinha",k:"r",In:6,Ip:6,tau:1,p:4},
+{n:"Sala",k:"r",In:6,Ip:6,tau:1,p:5},
+{n:"Geladeira",k:"m",In:3,Ip:18,tau:.5,p:0,free:1}];
+const $=id=>document.getElementById(id);
+const cx=[330,445,560,675,790,905];
+let mode="S",t=0,run=false,tripped=false,hist=[],peak=0,last=0,ang=[],t0=[],q=[],nc=0,ann=false,started=false,meas0=false,wf=-1,flash=0;
+cx.forEach((x,i)=>{const l=L[i];
+ const sym=l.k==="m"?`<circle id="sy${i}" cx="${x}" cy="178" r="22" class="w" style="fill:var(--panel)"/><path id="ro${i}" d="M${x} 178V164" class="w" style="stroke-width:3"/><text x="${x}" y="183" text-anchor="middle" font-size="12" font-weight="700" style="opacity:.55">M</text>`
+  :`<path id="sy${i}" class="w" d="M${x} 150v6l9 5-18 10 18 10-18 10 9 5v6"/>`;
+ const top=l.free?`<path id="wa${i}" class="w" d="M${x} 40V156" style="stroke-dasharray:4 4"/><text x="${x}" y="82" text-anchor="middle" font-size="10">sem nó</text><text x="${x}" y="95" text-anchor="middle" font-size="10">(fora de controle)</text>`
+  :`<path id="wa${i}" class="w" d="M${x} 40V70"/><rect id="nd${i}" x="${x-36}" y="70" width="72" height="26" rx="4" class="w" style="fill:var(--panel)"/><text x="${x}" y="88" text-anchor="middle" font-size="11.5" font-weight="700">nó · P${l.p}</text>
+  <path id="wb${i}" class="w" d="M${x} 96V108"/><circle cx="${x}" cy="108" r="2.5" fill="currentColor"/><path id="bl${i}" class="w" d="M${x} 130L${x+12} 112"/><circle cx="${x}" cy="130" r="2.5" fill="currentColor"/><path id="wc${i}" class="w" d="M${x} 130V150"/>`;
+ $("ld").insertAdjacentHTML("beforeend",`<g id="g${i}">${top}${sym}
+  <text x="${x}" y="222" text-anchor="middle" font-size="13" font-weight="700">${l.n}</text>
+  <text id="st${i}" x="${x}" y="238" text-anchor="middle" font-size="10.5" style="fill:var(--mut)"></text></g>`);
+});
+const fr=()=>$("fr").checked, act=i=>!L[i].free||fr();
+function cur(i,tt){const a=t0[i];if(a===null||tt<a)return 0;const l=L[i];return l.In+(l.Ip-l.In)*Math.exp(-(tt-a)/l.tau)}
+function total(tt){let s=0;L.forEach((l,i)=>{if(act(i))s+=cur(i,tt)});return s}
+function log(s){const u=$("log");u.insertAdjacentHTML("beforeend","<li>"+s+"</li>");while(u.children.length>7)u.removeChild(u.firstChild)}
+function reset(){t=0;run=false;tripped=false;hist=[];peak=0;ang=L.map(()=>0);t0=L.map(()=>null);q=[0,1,2,3,4];ann=false;started=false;meas0=false;wf=-1;flash=0;nc=T_ANN;
+ $("log").innerHTML="";$("go").textContent="Simular queda e retorno";$("msg").textContent="Escolha o modo e toque em “Simular queda e retorno”.";$("msg").className="";paint(0)}
+function paint(I){
+ $("cur").textContent=Math.round(I)+" A";$("pk").textContent=Math.round(peak)+" A";
+ const s=$("st");s.textContent=tripped?"Desarmou":"Ligado";s.className=tripped?"bad":"good";
+ $("brkst").textContent=tripped?"DESARMADO":"fechado";$("brk").style.stroke=tripped?"var(--bad)":"var(--line)";
+ const pw=t>=T_ON&&!tripped;$("pw").textContent=t<T_ON?"SEM ENERGIA":(tripped?"DESLIGADO":"ENERGIZADO");
+ $("pw").style.fill=pw?"var(--ok)":"var(--bad)";
+ $("bus").style.stroke=pw?"var(--ok)":"var(--mut)";
+ $("pl").style.opacity=(mode==="C"&&pw&&t<flash)?1:0;
+ L.forEach((l,i)=>{
+  const g=$("g"+i);g.style.opacity=act(i)?1:.2;
+  const on=pw&&t0[i]!==null&&t>=t0[i];
+  ["wa","wb","wc"].forEach(p=>{const e=$(p+i);e&&e.classList.toggle("on",on)});
+  const sy=$("sy"+i);sy.style.stroke=on?"var(--ok)":"var(--line)";
+  if(l.k==="m")$("ro"+i).setAttribute("transform",`rotate(${ang[i]} ${cx[i]} 178)`);
+  const bl=$("bl"+i);if(bl)bl.setAttribute("d",on?`M${cx[i]} 130V108`:`M${cx[i]} 130L${cx[i]+12} 112`);
+  const nd=$("nd"+i),wt=mode==="C"&&q.includes(i)&&pw&&ann;
+  if(nd)nd.style.stroke=on?"var(--ok)":(wt?"var(--zone)":"var(--line)");
+  $("st"+i).textContent=tripped?"sem energia":on?"ligado":(wt?"aguardando fila":(l.free&&t<T_ON?"":"desligado"));
+ });
+ draw()}
+function draw(){
+ const c=$("cv"),r=devicePixelRatio||1,W=c.clientWidth,H=c.clientHeight;
+ c.width=W*r;c.height=H*r;const g=c.getContext("2d");g.scale(r,r);
+ const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+ const Lf=40,R=8,T=8,B=24,pw=W-Lf-R,ph=H-T-B,YM=200;
+ const X=v=>Lf+v/TMAX*pw,Y=v=>T+ph-v/YM*ph;
+ g.fillStyle=css("--mut");g.globalAlpha=.18;g.fillRect(Lf,T,X(T_ON)-Lf,ph);
+ g.fillStyle=css("--zone");g.fillRect(Lf,Y(YM),pw,Y(TRIP)-Y(YM));g.globalAlpha=1;
+ g.strokeStyle=css("--grid");g.fillStyle=css("--mut");g.font="11px system-ui";g.lineWidth=1;
+ for(let v=0;v<=200;v+=50){g.beginPath();g.moveTo(Lf,Y(v));g.lineTo(Lf+pw,Y(v));g.stroke();g.fillText(v,6,Y(v)+4)}
+ for(let v=0;v<=TMAX;v+=1)g.fillText(v+" s",X(v)-8,H-6);
+ g.fillText("sem energia",Lf+3,T+12);
+ g.setLineDash([5,4]);g.strokeStyle=css("--ink");g.fillStyle=css("--ink");
+ g.beginPath();g.moveTo(Lf,Y(LIM));g.lineTo(Lf+pw,Y(LIM));g.stroke();g.fillText("limite do centralizador "+LIM+" A",X(3.2),Y(LIM)-5);
+ g.setLineDash([2,4]);g.beginPath();g.moveTo(Lf,Y(NOM));g.lineTo(Lf+pw,Y(NOM));g.stroke();g.fillText("soma nominal "+NOM+" A",X(5.5),Y(NOM)-5);g.setLineDash([]);
+ g.fillStyle=css("--zone");g.fillText("zona de disparo (120 A ou mais)",Lf+4,Y(TRIP)-6);
+ if(hist.length){g.beginPath();g.lineWidth=2.5;g.strokeStyle=css(tripped?"--bad":"--ok");
+  hist.forEach((p,i)=>{i?g.lineTo(X(p[0]),Y(p[1])):g.moveTo(X(p[0]),Y(p[1]))});g.stroke()}
+}
+function end(){
+ run=false;$("go").textContent="Rodar de novo";const m=$("msg");
+ if(tripped){m.className="bad";m.textContent="Sem coordenação, todos tentaram partir juntos: a soma dos picos chegou a "+Math.round(peak)+" A, acima dos 120 A de disparo, e o disjuntor desarmou mesmo com a soma nominal de apenas "+NOM+" A."}
+ else{m.className="good";m.textContent="Sem desarme: o centralizador escalonou as partidas pela fila de prioridade e o maior pico foi "+Math.round(peak)+" A, abaixo do limite de "+LIM+" A. No regime, o quadro fica em torno de "+NOM+" A."}
+}
+function loop(ts){
+ if(!run)return;
+ const dt=Math.min((ts-last)/1000,.05);last=ts;t+=dt*SPD;
+ if(t>=T_ON&&!started){started=true;log("Energia restabelecida: todos os nós começam desligados");
+  L.forEach((l,i)=>{if(!act(i))return;if(l.free||mode==="S")t0[i]=T_ON});
+  if(mode==="S"){log("Sem centralizador: tudo parte ao mesmo tempo");q=[]}}
+ if(mode==="C"&&started&&!ann&&t>=T_ANN&&!tripped){ann=true;flash=t+.4;log("PLC: 5 nós anunciaram prioridade, In e Ip")}
+ while(mode==="C"&&ann&&!tripped&&t>=nc&&q.length){nc+=CYC;
+  const I=total(t);
+  if(!meas0){meas0=true;if(I>.5)log("Medição: "+I.toFixed(0)+" A sem nenhuma carga autorizada, há carga fora de controle")}
+  const i=q[0],l=L[i];
+  if(I+l.Ip<=LIM){q.shift();t0[i]=t+LAT;flash=t+.3;wf=-1;log("P"+l.p+" "+l.n+": autorizado ("+I.toFixed(0)+" + "+l.Ip+" ≤ "+LIM+" A)")}
+  else if(wf!==i){wf=i;log("P"+l.p+" "+l.n+": aguarda margem ("+I.toFixed(0)+" + "+l.Ip+" > "+LIM+" A)")}}
+ let I=0;
+ if(!tripped){I=total(t);if(I>=TRIP){tripped=true;log("DISJUNTOR DESARMOU: "+I.toFixed(0)+" A")}peak=Math.max(peak,I)}
+ hist.push([t,I]);
+ L.forEach((l,i)=>{if(l.k==="m"&&t0[i]!==null&&t>=t0[i]&&!tripped)ang[i]+=dt*SPD*220*(1-Math.exp(-(t-t0[i])/l.tau)*.8)});
+ paint(I);
+ if(t>=TMAX){end();return}
+ requestAnimationFrame(loop)}
+$("go").onclick=()=>{reset();run=true;last=performance.now();requestAnimationFrame(loop)};
+function setMode(m){mode=m;$("bS").setAttribute("aria-pressed",m==="S");$("bC").setAttribute("aria-pressed",m==="C");reset()}
+$("bS").onclick=()=>setMode("S");$("bC").onclick=()=>setMode("C");
+$("fr").onchange=reset;
+addEventListener("resize",draw);
+reset();
+</script>
+</body>
+</html>
