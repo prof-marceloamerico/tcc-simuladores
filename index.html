@@ -22,17 +22,20 @@ svg text{fill:var(--ink);font-family:inherit}
 .on{stroke:var(--ok)}
 .fl{stroke:var(--zone);stroke-width:3;fill:none;stroke-dasharray:5 7;animation:d .5s linear infinite}
 @keyframes d{to{stroke-dashoffset:-12}}
-.seg{display:flex;gap:8px;margin-bottom:10px}
+#sc{cursor:pointer}#sc:focus-visible{outline:3px solid var(--zone)}
+.seg,.row{display:flex;gap:8px;margin-bottom:10px}
+.row{margin:10px 0 0;flex-wrap:wrap}
 button{font:inherit;border:1.5px solid var(--line);background:transparent;color:var(--ink);border-radius:8px;padding:9px 12px;cursor:pointer;flex:1}
 button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
-button.go{background:var(--zone);border-color:var(--zone);color:#111;font-weight:700;width:100%;margin-top:8px}
+button.go{background:var(--zone);border-color:var(--zone);color:#111;font-weight:700}
+button:disabled{opacity:.4;cursor:default}
 button:focus-visible,input:focus-visible{outline:3px solid var(--zone);outline-offset:2px}
 .ck{display:flex;gap:8px;align-items:center;font-size:.92rem;color:var(--mut)}
 .ck input{accent-color:var(--zone);width:18px;height:18px}
 .read{display:flex;gap:10px;margin-bottom:8px}
 .read div{flex:1}
-.read b{display:block;font-size:1.5rem;line-height:1.1}
-.read span{font-size:.8rem;color:var(--mut)}
+.read b{display:block;font-size:1.3rem;line-height:1.15}
+.read span{font-size:.78rem;color:var(--mut)}
 canvas{width:100%;height:230px;display:block}
 #log{list-style:none;margin:0;padding:0;font:.8rem/1.45 ui-monospace,Menlo,Consolas,monospace;min-height:10.5em;color:var(--mut)}
 #log li:last-child{color:var(--ink)}
@@ -43,35 +46,42 @@ canvas{width:100%;height:230px;display:block}
  main{max-width:1500px;display:grid;grid-template-columns:1fr 1.3fr;column-gap:20px;padding:22px 28px}
  h1,p.sub,.c1{grid-column:1/-1}
  h1{font-size:1.9rem}
- .c2{grid-column:1}
- .c3{grid-column:1}
+ .c2,.c3{grid-column:1}
  .c4{grid-column:2;grid-row:4/span 2}
  .c4 canvas{height:clamp(260px,42vh,480px)}
- .read b{font-size:2rem}
+ .read b{font-size:1.8rem}
 }
 </style>
 </head>
 <body>
 <main>
 <h1>Retorno de energia: todos partem juntos ou em fila?</h1>
-<p class="sub">Um centralizador (microcontrolador) fala com cada equipamento pela própria fiação (PLC) e libera as partidas por prioridade, medindo a corrente do quadro.</p>
+<p class="sub">O centralizador fala com cada equipamento pela própria fiação (PLC) e libera as partidas por prioridade. A simulação roda até você clicar em Parar; use o seccionador para cortar e religar a energia.</p>
 
 <div class="card c1 sv">
-<svg id="sch" viewBox="0 0 960 245" role="img" aria-label="Fonte, disjuntor de 40 A, sensor de corrente, centralizador e seis cargas">
- <circle cx="30" cy="40" r="14" class="w"/><text x="30" y="45" text-anchor="middle" font-size="15">~</text>
- <text id="pw" x="30" y="76" text-anchor="middle" font-size="11" font-weight="700"></text>
- <path class="w" d="M44 40H62"/>
- <rect id="brk" x="62" y="22" width="68" height="36" rx="4" class="w" style="fill:var(--panel)"/>
- <text x="96" y="45" text-anchor="middle" font-size="13" font-weight="700">40 A · B</text>
- <text id="brkst" x="96" y="16" text-anchor="middle" font-size="10"></text>
- <path id="bus" class="w" d="M130 40H935"/>
- <path id="pl" class="fl" d="M130 40H935" style="opacity:0"/>
- <circle cx="165" cy="40" r="11" style="fill:none;stroke:var(--zone);stroke-width:3"/>
- <path d="M165 51V104M230 40V104" style="stroke:var(--zone);stroke-width:1.5;fill:none;stroke-dasharray:3 3"/>
- <text x="172" y="82" font-size="10">medição</text><text x="237" y="82" font-size="10">sinal PLC</text>
- <rect x="125" y="104" width="145" height="56" rx="6" class="w" style="fill:var(--panel)"/>
- <text x="197" y="128" text-anchor="middle" font-size="13" font-weight="700">Centralizador</text>
- <text x="197" y="146" text-anchor="middle" font-size="10.5">microcontrolador + modem PLC</text>
+<svg id="sch" viewBox="0 0 960 245" role="img" aria-label="Fonte, seccionador, disjuntor de 40 A, sensor de corrente, centralizador e seis cargas">
+ <circle cx="24" cy="40" r="13" class="w"/><text x="24" y="45" text-anchor="middle" font-size="15">~</text>
+ <text id="pw" x="24" y="90" text-anchor="middle" font-size="10.5" font-weight="700"></text>
+ <path class="w" d="M37 40H44"/>
+ <g id="sc" tabindex="0" role="button" aria-label="Seccionador manual: clique para abrir ou fechar">
+  <rect x="38" y="12" width="42" height="64" fill="transparent"/>
+  <circle cx="44" cy="40" r="3" fill="currentColor"/><circle cx="74" cy="40" r="3" fill="currentColor"/>
+  <path id="scb" class="w" style="stroke-width:3.5" d="M44 40L72 40"/>
+  <text x="59" y="62" text-anchor="middle" font-size="9.5">seccionador</text>
+  <text id="scst" x="59" y="75" text-anchor="middle" font-size="10" font-weight="700"></text>
+ </g>
+ <path class="w" d="M74 40H84"/>
+ <rect id="brk" x="84" y="22" width="62" height="36" rx="4" class="w" style="fill:var(--panel)"/>
+ <text x="115" y="45" text-anchor="middle" font-size="12" font-weight="700">40 A · B</text>
+ <text id="brkst" x="115" y="16" text-anchor="middle" font-size="10"></text>
+ <path id="bus" class="w" d="M146 40H935"/>
+ <path id="pl" class="fl" d="M146 40H935" style="opacity:0"/>
+ <circle cx="175" cy="40" r="11" style="fill:none;stroke:var(--zone);stroke-width:3"/>
+ <path d="M175 51V104M240 40V104" style="stroke:var(--zone);stroke-width:1.5;fill:none;stroke-dasharray:3 3"/>
+ <text x="182" y="82" font-size="10">medição</text><text x="247" y="82" font-size="10">sinal PLC</text>
+ <rect x="135" y="104" width="145" height="56" rx="6" class="w" style="fill:var(--panel)"/>
+ <text x="207" y="128" text-anchor="middle" font-size="13" font-weight="700">Centralizador</text>
+ <text x="207" y="146" text-anchor="middle" font-size="10.5">microcontrolador + modem PLC</text>
  <g id="ld"></g>
 </svg>
 </div>
@@ -82,27 +92,32 @@ canvas{width:100%;height:230px;display:block}
   <button id="bC" aria-pressed="false">Com centralizador</button>
  </div>
  <label class="ck"><input type="checkbox" id="fr" checked> Incluir carga fora de controle (geladeira, sem nó)</label>
- <button class="go" id="go">Simular queda e retorno</button>
+ <div class="row">
+  <button class="go" id="go">Iniciar simulação</button>
+  <button id="sec" disabled>Abrir seccionador</button>
+  <button id="re" disabled>Rearmar disjuntor</button>
+ </div>
 </div>
 
 <div class="card c3">
  <ul id="log"></ul>
- <p id="msg">Escolha o modo e toque em “Simular queda e retorno”.</p>
+ <p id="msg"></p>
 </div>
 
 <div class="card c4">
  <div class="read">
   <div><b id="cur">0 A</b><span>corrente do quadro</span></div>
-  <div><b id="pk">0 A</b><span>pico</span></div>
-  <div><b id="st" class="good">Ligado</b><span>disjuntor</span></div>
+  <div><b id="pk">0 A</b><span>pico desde o retorno</span></div>
+  <div><b id="tr">0</b><span>desarmes</span></div>
+  <div><b id="st" class="good">Ligado</b><span>situação</span></div>
  </div>
- <canvas id="cv" role="img" aria-label="Gráfico da corrente total no tempo"></canvas>
+ <canvas id="cv" role="img" aria-label="Gráfico da corrente total nos últimos segundos"></canvas>
 </div>
 </main>
 <script>
-const TRIP=120,LIM=96,TMAX=9,SPD=1.5,T_ON=1,T_ANN=1.6,CYC=.25,LAT=.2,NOM=39;
+const TRIP=120,LIM=96,WIN=25,SPD=1.5,T_ANN=.6,CYC=.25,LAT=.2,NOM=39;
 const L=[
-{n:"Elevador",k:"m",In:14,Ip:84,tau:.8,p:1},
+{n:"Elevador",k:"m",In:14,Ip:70,tau:.8,p:1},
 {n:"Alarmes",k:"r",In:2,Ip:2,tau:1,p:2},
 {n:"Bomba d’água",k:"m",In:8,Ip:48,tau:.6,p:3},
 {n:"Cozinha",k:"r",In:6,Ip:6,tau:1,p:4},
@@ -110,91 +125,107 @@ const L=[
 {n:"Geladeira",k:"m",In:3,Ip:18,tau:.5,p:0,free:1}];
 const $=id=>document.getElementById(id);
 const cx=[330,445,560,675,790,905];
-let mode="S",t=0,run=false,tripped=false,hist=[],peak=0,last=0,ang=[],t0=[],q=[],nc=0,ann=false,started=false,meas0=false,wf=-1,flash=0;
+let mode="S",t=0,run=false,tripped=false,open=false,trips=0,hist=[],peak=0,last=0,ang=[],t0=[],q=[],nc=0,tE=0,ann=false,flash=0,wf=-1,meas0=false,man=[true,true,true,true,true,true];
 cx.forEach((x,i)=>{const l=L[i];
  const sym=l.k==="m"?`<circle id="sy${i}" cx="${x}" cy="178" r="22" class="w" style="fill:var(--panel)"/><path id="ro${i}" d="M${x} 178V164" class="w" style="stroke-width:3"/><text x="${x}" y="183" text-anchor="middle" font-size="12" font-weight="700" style="opacity:.55">M</text>`
   :`<path id="sy${i}" class="w" d="M${x} 150v6l9 5-18 10 18 10-18 10 9 5v6"/>`;
  const top=l.free?`<path id="wa${i}" class="w" d="M${x} 40V156" style="stroke-dasharray:4 4"/><text x="${x}" y="82" text-anchor="middle" font-size="10">sem nó</text><text x="${x}" y="95" text-anchor="middle" font-size="10">(fora de controle)</text>`
-  :`<path id="wa${i}" class="w" d="M${x} 40V70"/><rect id="nd${i}" x="${x-36}" y="70" width="72" height="26" rx="4" class="w" style="fill:var(--panel)"/><text x="${x}" y="88" text-anchor="middle" font-size="11.5" font-weight="700">nó · P${l.p}</text>
+  :`<path id="wa${i}" class="w" d="M${x} 40V46"/><g id="ms${i}" tabindex="0" role="button" aria-label="Seccionador manual: ${l.n}" style="cursor:pointer"><rect x="${x-14}" y="38" width="28" height="34" fill="transparent"/><circle cx="${x}" cy="46" r="2.5" fill="currentColor"/><circle cx="${x}" cy="64" r="2.5" fill="currentColor"/><path id="mb${i}" class="w" style="stroke-width:3" d="M${x} 46V64"/></g><text x="${x-8}" y="59" text-anchor="end" font-size="8.5">manual</text><path id="wm${i}" class="w" d="M${x} 64V70"/><rect id="nd${i}" x="${x-36}" y="70" width="72" height="26" rx="4" class="w" style="fill:var(--panel)"/><text x="${x}" y="88" text-anchor="middle" font-size="11.5" font-weight="700">nó · P${l.p}</text>
   <path id="wb${i}" class="w" d="M${x} 96V108"/><circle cx="${x}" cy="108" r="2.5" fill="currentColor"/><path id="bl${i}" class="w" d="M${x} 130L${x+12} 112"/><circle cx="${x}" cy="130" r="2.5" fill="currentColor"/><path id="wc${i}" class="w" d="M${x} 130V150"/>`;
  $("ld").insertAdjacentHTML("beforeend",`<g id="g${i}">${top}${sym}
   <text x="${x}" y="222" text-anchor="middle" font-size="13" font-weight="700">${l.n}</text>
-  <text id="st${i}" x="${x}" y="238" text-anchor="middle" font-size="10.5" style="fill:var(--mut)"></text></g>`);
+  <text id="st${i}" x="${x}" y="238" text-anchor="middle" font-size="10.5" style="fill:var(--mut)"></text></g>`); if(!l.free){const e=$("ms"+i);e.onclick=()=>toggleMan(i);e.onkeydown=ev=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();toggleMan(i)}}}
 });
-const fr=()=>$("fr").checked, act=i=>!L[i].free||fr();
+const act=i=>!L[i].free||$("fr").checked, en=()=>!open&&!tripped;
+function wants(i,tt){switch(i){case 0:return tt%10<4;case 2:return (tt+9.85)%10<5;case 5:return tt%14<7;default:return true}}
 function cur(i,tt){const a=t0[i];if(a===null||tt<a)return 0;const l=L[i];return l.In+(l.Ip-l.In)*Math.exp(-(tt-a)/l.tau)}
 function total(tt){let s=0;L.forEach((l,i)=>{if(act(i))s+=cur(i,tt)});return s}
 function log(s){const u=$("log");u.insertAdjacentHTML("beforeend","<li>"+s+"</li>");while(u.children.length>7)u.removeChild(u.firstChild)}
-function reset(){t=0;run=false;tripped=false;hist=[];peak=0;ang=L.map(()=>0);t0=L.map(()=>null);q=[0,1,2,3,4];ann=false;started=false;meas0=false;wf=-1;flash=0;nc=T_ANN;
- $("log").innerHTML="";$("go").textContent="Simular queda e retorno";$("msg").textContent="Escolha o modo e toque em “Simular queda e retorno”.";$("msg").className="";paint(0)}
+function setMsg(s,c){$("msg").textContent=s;$("msg").className=c||""}
+function dropAll(){t0=L.map(()=>null);q=[]}
+function restore(){tE=t;ann=false;meas0=false;wf=-1;peak=0;q=[];
+ log(mode==="S"?"Energia restabelecida: tudo que está pedindo energia parte junto":"Energia restabelecida: nós começam desligados, aguardando o centralizador")}
+function reset(){t=0;tripped=false;open=false;trips=0;hist=[];peak=0;ang=L.map(()=>0);man=man.map(()=>true);dropAll();tE=0;ann=false;meas0=false;wf=-1;flash=0;nc=0;
+ $("log").innerHTML="";setMsg("Toque em “Iniciar simulação”. Elevador e bomba pedem partida a cada 10 s; use o seccionador para cortar e religar a energia.");paint(0)}
+function toggleOpen(){if(!run)return;open=!open;
+ if(open){dropAll();log("Seccionador ABERTO manualmente: sem energia")}
+ else{log("Seccionador FECHADO");if(tripped)log("Disjuntor ainda desarmado: rearme-o");else restore()}}
+function toggleMan(i){if(!run)return;man[i]=!man[i];
+ if(!man[i]){t0[i]=null;const k=q.indexOf(i);if(k>=0)q.splice(k,1);log("Seccionador manual do "+L[i].n+" ABERTO")}
+ else log("Seccionador manual do "+L[i].n+" FECHADO"+(en()?": nó volta a pedir partida":""))}
+function rearm(){if(!run||!tripped)return;tripped=false;log("Disjuntor rearmado");setMsg("");if(!open)restore()}
 function paint(I){
- $("cur").textContent=Math.round(I)+" A";$("pk").textContent=Math.round(peak)+" A";
- const s=$("st");s.textContent=tripped?"Desarmou":"Ligado";s.className=tripped?"bad":"good";
+ $("cur").textContent=Math.round(I)+" A";$("pk").textContent=Math.round(peak)+" A";$("tr").textContent=trips;
+ const s=$("st");s.textContent=tripped?"Desarmou":open?"Seccionado":"Ligado";s.className=en()?"good":"bad";
  $("brkst").textContent=tripped?"DESARMADO":"fechado";$("brk").style.stroke=tripped?"var(--bad)":"var(--line)";
- const pw=t>=T_ON&&!tripped;$("pw").textContent=t<T_ON?"SEM ENERGIA":(tripped?"DESLIGADO":"ENERGIZADO");
- $("pw").style.fill=pw?"var(--ok)":"var(--bad)";
- $("bus").style.stroke=pw?"var(--ok)":"var(--mut)";
- $("pl").style.opacity=(mode==="C"&&pw&&t<flash)?1:0;
+ $("pw").textContent=open?"SECCIONADO":tripped?"DESARMADO":"ENERGIZADO";$("pw").style.fill=en()?"var(--ok)":"var(--bad)";
+ $("scb").setAttribute("d",open?"M44 40L68 20":"M44 40L72 40");$("scst").textContent=open?"ABERTO":"fechado";
+ $("bus").style.stroke=en()?"var(--ok)":"var(--mut)";
+ $("pl").style.opacity=(mode==="C"&&en()&&t<flash)?1:0;
+ $("sec").disabled=!run;$("sec").textContent=open?"Fechar seccionador":"Abrir seccionador";$("re").disabled=!(run&&tripped);
  L.forEach((l,i)=>{
-  const g=$("g"+i);g.style.opacity=act(i)?1:.2;
-  const on=pw&&t0[i]!==null&&t>=t0[i];
-  ["wa","wb","wc"].forEach(p=>{const e=$(p+i);e&&e.classList.toggle("on",on)});
-  const sy=$("sy"+i);sy.style.stroke=on?"var(--ok)":"var(--line)";
+  $("g"+i).style.opacity=act(i)?1:.2;
+  const on=en()&&t0[i]!==null&&t>=t0[i];
+  ["wa","wb","wc"].forEach(p=>{const e=$(p+i);e&&e.classList.toggle("on",p==="wa"&&!l.free?en():on)});const wm=$("wm"+i);if(wm){wm.classList.toggle("on",en()&&man[i]);$("mb"+i).setAttribute("d",man[i]?"M"+cx[i]+" 46V64":"M"+cx[i]+" 64L"+(cx[i]+11)+" 48")}
+  $("sy"+i).style.stroke=on?"var(--ok)":"var(--line)";
   if(l.k==="m")$("ro"+i).setAttribute("transform",`rotate(${ang[i]} ${cx[i]} 178)`);
   const bl=$("bl"+i);if(bl)bl.setAttribute("d",on?`M${cx[i]} 130V108`:`M${cx[i]} 130L${cx[i]+12} 112`);
-  const nd=$("nd"+i),wt=mode==="C"&&q.includes(i)&&pw&&ann;
-  if(nd)nd.style.stroke=on?"var(--ok)":(wt?"var(--zone)":"var(--line)");
-  $("st"+i).textContent=tripped?"sem energia":on?"ligado":(wt?"aguardando fila":(l.free&&t<T_ON?"":"desligado"));
+  const w=en()&&q.includes(i)&&ann,nd=$("nd"+i);
+  if(nd)nd.style.stroke=!man[i]?"var(--mut)":on?"var(--ok)":(w?"var(--zone)":"var(--line)");
+  $("st"+i).textContent=!man[i]?"seccionado (manual)":!en()?"sem energia":on?"ligado":w?"aguardando fila":(wants(i,t)?"":"em repouso");
  });
  draw()}
 function draw(){
  const c=$("cv"),r=devicePixelRatio||1,W=c.clientWidth,H=c.clientHeight;
  c.width=W*r;c.height=H*r;const g=c.getContext("2d");g.scale(r,r);
  const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
- const Lf=40,R=8,T=8,B=24,pw=W-Lf-R,ph=H-T-B,YM=200;
- const X=v=>Lf+v/TMAX*pw,Y=v=>T+ph-v/YM*ph;
- g.fillStyle=css("--mut");g.globalAlpha=.18;g.fillRect(Lf,T,X(T_ON)-Lf,ph);
+ const Lf=40,R=8,T=8,B=24,pw=W-Lf-R,ph=H-T-B,YM=200,x0=Math.max(0,t-WIN),x1=x0+WIN;
+ const X=v=>Lf+(v-x0)/WIN*pw,Y=v=>T+ph-v/YM*ph;
+ g.fillStyle=css("--mut");g.globalAlpha=.2;
+ for(let k=1;k<hist.length;k++)if(!hist[k][2]){const a=Math.max(Lf,X(hist[k-1][0])),b=X(hist[k][0]);if(b>a)g.fillRect(a,T,b-a+1,ph)}
  g.fillStyle=css("--zone");g.fillRect(Lf,Y(YM),pw,Y(TRIP)-Y(YM));g.globalAlpha=1;
  g.strokeStyle=css("--grid");g.fillStyle=css("--mut");g.font="11px system-ui";g.lineWidth=1;
  for(let v=0;v<=200;v+=50){g.beginPath();g.moveTo(Lf,Y(v));g.lineTo(Lf+pw,Y(v));g.stroke();g.fillText(v,6,Y(v)+4)}
- for(let v=0;v<=TMAX;v+=1)g.fillText(v+" s",X(v)-8,H-6);
- g.fillText("sem energia",Lf+3,T+12);
+ for(let v=Math.ceil(x0/5)*5;v<=x1;v+=5)g.fillText(v+" s",X(v)-8,H-6);
  g.setLineDash([5,4]);g.strokeStyle=css("--ink");g.fillStyle=css("--ink");
- g.beginPath();g.moveTo(Lf,Y(LIM));g.lineTo(Lf+pw,Y(LIM));g.stroke();g.fillText("limite do centralizador "+LIM+" A",X(3.2),Y(LIM)-5);
- g.setLineDash([2,4]);g.beginPath();g.moveTo(Lf,Y(NOM));g.lineTo(Lf+pw,Y(NOM));g.stroke();g.fillText("soma nominal "+NOM+" A",X(5.5),Y(NOM)-5);g.setLineDash([]);
+ g.beginPath();g.moveTo(Lf,Y(LIM));g.lineTo(Lf+pw,Y(LIM));g.stroke();g.fillText("limite do centralizador "+LIM+" A",Lf+pw*.35,Y(LIM)-5);
+ g.setLineDash([2,4]);g.beginPath();g.moveTo(Lf,Y(NOM));g.lineTo(Lf+pw,Y(NOM));g.stroke();g.fillText("soma nominal "+NOM+" A",Lf+pw*.7,Y(NOM)-5);g.setLineDash([]);
  g.fillStyle=css("--zone");g.fillText("zona de disparo (120 A ou mais)",Lf+4,Y(TRIP)-6);
- if(hist.length){g.beginPath();g.lineWidth=2.5;g.strokeStyle=css(tripped?"--bad":"--ok");
+ g.fillStyle=css("--mut");g.fillText("área cinza: sem energia",Lf+4,T+12);
+ if(hist.length){g.beginPath();g.lineWidth=2.5;g.strokeStyle=css(en()?"--ok":"--bad");
   hist.forEach((p,i)=>{i?g.lineTo(X(p[0]),Y(p[1])):g.moveTo(X(p[0]),Y(p[1]))});g.stroke()}
-}
-function end(){
- run=false;$("go").textContent="Rodar de novo";const m=$("msg");
- if(tripped){m.className="bad";m.textContent="Sem coordenação, todos tentaram partir juntos: a soma dos picos chegou a "+Math.round(peak)+" A, acima dos 120 A de disparo, e o disjuntor desarmou mesmo com a soma nominal de apenas "+NOM+" A."}
- else{m.className="good";m.textContent="Sem desarme: o centralizador escalonou as partidas pela fila de prioridade e o maior pico foi "+Math.round(peak)+" A, abaixo do limite de "+LIM+" A. No regime, o quadro fica em torno de "+NOM+" A."}
 }
 function loop(ts){
  if(!run)return;
  const dt=Math.min((ts-last)/1000,.05);last=ts;t+=dt*SPD;
- if(t>=T_ON&&!started){started=true;log("Energia restabelecida: todos os nós começam desligados");
-  L.forEach((l,i)=>{if(!act(i))return;if(l.free||mode==="S")t0[i]=T_ON});
-  if(mode==="S"){log("Sem centralizador: tudo parte ao mesmo tempo");q=[]}}
- if(mode==="C"&&started&&!ann&&t>=T_ANN&&!tripped){ann=true;flash=t+.4;log("PLC: 5 nós anunciaram prioridade, In e Ip")}
- while(mode==="C"&&ann&&!tripped&&t>=nc&&q.length){nc+=CYC;
-  const I=total(t);
-  if(!meas0){meas0=true;if(I>.5)log("Medição: "+I.toFixed(0)+" A sem nenhuma carga autorizada, há carga fora de controle")}
-  const i=q[0],l=L[i];
-  if(I+l.Ip<=LIM){q.shift();t0[i]=t+LAT;flash=t+.3;wf=-1;log("P"+l.p+" "+l.n+": autorizado ("+I.toFixed(0)+" + "+l.Ip+" ≤ "+LIM+" A)")}
-  else if(wf!==i){wf=i;log("P"+l.p+" "+l.n+": aguarda margem ("+I.toFixed(0)+" + "+l.Ip+" > "+LIM+" A)")}}
+ if(en()){
+  L.forEach((l,i)=>{if(!act(i))return;
+   if(!wants(i,t)||!man[i]){t0[i]=null;const k=q.indexOf(i);if(k>=0)q.splice(k,1);return}
+   if(t0[i]===null&&!q.includes(i)){
+    if(l.free||mode==="S")t0[i]=t;else{q.push(i);q.sort((a,b)=>L[a].p-L[b].p)}}});
+  if(mode==="C"&&!ann&&t>=tE+T_ANN){ann=true;flash=t+.4;nc=t;log("PLC: nós anunciaram prioridade, In e Ip")}
+  if(mode==="C"&&ann&&q.length&&t>=nc){nc=t+CYC;
+   const I=total(t);
+   if(!meas0){meas0=true;if(I>.5)log("Medição: "+I.toFixed(0)+" A sem nenhuma carga autorizada, há carga fora de controle")}
+   const i=q[0],l=L[i];
+   if(I+l.Ip<=LIM){q.shift();t0[i]=t+LAT;flash=t+.3;wf=-1;log("P"+l.p+" "+l.n+": autorizado ("+I.toFixed(0)+" + "+l.Ip+" ≤ "+LIM+" A)")}
+   else if(wf!==i){wf=i;log("P"+l.p+" "+l.n+": aguarda margem ("+I.toFixed(0)+" + "+l.Ip+" > "+LIM+" A)")}}
+ }
  let I=0;
- if(!tripped){I=total(t);if(I>=TRIP){tripped=true;log("DISJUNTOR DESARMOU: "+I.toFixed(0)+" A")}peak=Math.max(peak,I)}
- hist.push([t,I]);
- L.forEach((l,i)=>{if(l.k==="m"&&t0[i]!==null&&t>=t0[i]&&!tripped)ang[i]+=dt*SPD*220*(1-Math.exp(-(t-t0[i])/l.tau)*.8)});
- paint(I);
- if(t>=TMAX){end();return}
- requestAnimationFrame(loop)}
-$("go").onclick=()=>{reset();run=true;last=performance.now();requestAnimationFrame(loop)};
-function setMode(m){mode=m;$("bS").setAttribute("aria-pressed",m==="S");$("bC").setAttribute("aria-pressed",m==="C");reset()}
-$("bS").onclick=()=>setMode("S");$("bC").onclick=()=>setMode("C");
-$("fr").onchange=reset;
+ if(en()){I=total(t);peak=Math.max(peak,I);
+  if(I>=TRIP){tripped=true;trips++;dropAll();log("DISJUNTOR DESARMOU: "+I.toFixed(0)+" A");
+   setMsg("O disjuntor desarmou: a soma dos picos chegou a "+Math.round(I)+" A (disparo em 120 A), com soma nominal de só "+NOM+" A. Clique em “Rearmar disjuntor” para ver o retorno de novo.","bad")}}
+ hist.push([t,I,en()?1:0]);while(hist.length&&hist[0][0]<t-WIN-1)hist.shift();
+ L.forEach((l,i)=>{if(l.k==="m"&&en()&&t0[i]!==null&&t>=t0[i])ang[i]+=dt*SPD*220*(1-Math.exp(-(t-t0[i])/l.tau)*.8)});
+ paint(I);requestAnimationFrame(loop)}
+function start(){run=true;last=performance.now();$("go").textContent="Parar";restore();requestAnimationFrame(loop)}
+$("go").onclick=()=>{if(run){run=false;$("go").textContent="Iniciar simulação";paint(0);setMsg("Simulação parada. Desarmes no período: "+trips+".",trips?"bad":"good")}else{reset();start()}};
+$("sec").onclick=toggleOpen;$("re").onclick=rearm;
+$("sc").onclick=toggleOpen;$("sc").onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();toggleOpen()}};
+function again(){const w=run;run=false;reset();$("go").textContent="Iniciar simulação";if(w)start()}
+$("bS").onclick=()=>{mode="S";$("bS").setAttribute("aria-pressed",true);$("bC").setAttribute("aria-pressed",false);again()};
+$("bC").onclick=()=>{mode="C";$("bC").setAttribute("aria-pressed",true);$("bS").setAttribute("aria-pressed",false);again()};
+$("fr").onchange=again;
 addEventListener("resize",draw);
 reset();
 </script>
